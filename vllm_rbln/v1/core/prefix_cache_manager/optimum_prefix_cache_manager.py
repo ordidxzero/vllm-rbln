@@ -32,11 +32,11 @@ NO_MATCH_FOUND = -1
 
 @dataclass
 class BlockConfiguration:
-    ob_size: int
-    ib_size: int
-    max_model_len: int
-    max_num_seqs: int
-    num_ob: int
+    ob_size: int # outer block size
+    ib_size: int # inner block size
+    max_model_len: int # maximum model length
+    max_num_seqs: int # maximum number of sequences
+    num_ob: int # number of outer blocks
 
     def __post_init__(self):
         assert self.ob_size % self.ib_size == 0, \

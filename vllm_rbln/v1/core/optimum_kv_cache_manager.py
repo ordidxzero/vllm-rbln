@@ -90,11 +90,15 @@ class RBLNKVCacheManager(KVCacheManager):
         if new_computed_blocks is not None:
             new_computed_block_list = new_computed_blocks.blocks
         else:
+            # multiple attention을 사용하지 않으므로 kv_cache_groups의 개수는 1개이다.
             new_computed_block_list = tuple(
                 [] for _ in range(len(self.kv_cache_config.kv_cache_groups)))
         # NOTE `new_computed_block_list` is used only for touch
         # When allocating new blocks, we do not reuse the provided
         # `new_computed_blocks` and we need to allocate new blocks.
+        
+        # empty_computed_block_list는 prefix caching hit된 토큰이 없는 경우의 블록 리스트와 동일하다.
+        # multiple attention을 사용하지 않으므로 kv_cache_groups의 개수는 1개이다.
         empty_computed_block_list = tuple(
             [] for _ in range(len(self.kv_cache_config.kv_cache_groups)))
 
@@ -110,6 +114,11 @@ class RBLNKVCacheManager(KVCacheManager):
         num_blocks_to_allocate = self.coordinator.get_num_blocks_to_allocate(
             request_id=request.request_id,
             num_tokens=num_tokens_need_slot,
+            # num_new_computed_blocks는 prefix caching hit된 토큰의 개수를 의미한다.
+            # new_computed_blocks는 prefix caching hit된 토큰의 블록 리스트를 의미한다.
+            # empty_computed_block_list는 빈 블록 리스트를 의미한다.
+            # original vLLM은 empty_computed_block_list를 사용하지 않고, new_computed_block_list를 사용한다.
+            # 이것의 의미는 Prefix Caching이 발생하지 않은 경우의 블록 리스트를 의미한다.
             new_computed_blocks=empty_computed_block_list,
             num_encoder_tokens=0,
         )
@@ -177,6 +186,8 @@ class RBLNKVCacheManager(KVCacheManager):
 
         # Allocate outer blocks for prefix caching
         # following the inner blocks allocation
+        # inner_block_ids와 cached_blocks는 KVCacheBlock의 block_id 리스트를 의미한다.
+        # KVCacheBlock의 block_id는 inner block이 된다.
         inner_block_ids = [block.block_id for block in new_blocks[0]]
         cached_blocks = [
             block.block_id for block in new_computed_block_list[0]
